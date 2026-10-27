@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="SmartChunk — Structure-aware, self-healing RAG pipeline with dual chunking, diagnostics, and interactive Q&A." />
+  <title>SmartChunk — Self-Healing RAG Pipeline</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+
+    <!-- ═══ TOP BAR ═══════════════════════════════════════════════════ -->
+    <header class="topbar">
+      <div class="logo">
+        <div class="logo-icon">S</div>
+        <span class="logo-text">SmartChunk</span>
+      </div>
+      <nav class="tab-nav" id="tab-nav">
+        <button class="tab-btn active" data-tab="chunking">Chunking Studio</button>
+        <button class="tab-btn" data-tab="heatmap">Boundary Inspector</button>
+        <button class="tab-btn" data-tab="diagnostics">Diagnostics</button>
+        <button class="tab-btn" data-tab="ask">Ask KB</button>
+      </nav>
+    </header>
+
+    <!-- ═══ MAIN CONTENT ════════════════════════════════════════════ -->
+    <main class="main-content">
+
+      <!-- ─── TAB 1: CHUNKING STUDIO ────────────────────────────── -->
+      <section id="panel-chunking" class="tab-panel active">
+        <div class="glass-card mb-4">
+          <div class="card-header">
+            <div>
+              <h3>Chunking Studio</h3>
+              <p class="subtitle">Upload a file to compare Naive vs Structure-Aware chunking</p>
+            </div>
+          </div>
+
+          <!-- Dropzone -->
+          <div class="dropzone" id="dropzone">
+            <div class="drop-text">
+              Drag & drop or <strong>browse</strong> to upload
+            </div>
+            <div class="drop-formats">Supports: .md, .pdf, .html, .txt</div>
+            <input type="file" id="file-input" accept=".md,.markdown,.pdf,.html,.htm,.txt,.text" />
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div id="chunk-stats" class="hidden">
+          <div class="stat-grid mb-4" id="stats-grid"></div>
+        </div>
+
+        <!-- Token filter -->
+        <div id="token-filter-bar" class="hidden" style="display:none;align-items:center;gap:12px;margin-bottom:16px;">
+          <label class="text-sm text-muted">Filter by token count:</label>
+          <input type="range" id="token-filter" min="0" max="500" value="0" style="flex:1;accent-color:var(--accent);" />
+          <span id="token-filter-value" class="text-sm" style="min-width:36px;">0</span>
+        </div>
+
+        <!-- Side-by-side comparison -->
+        <div id="chunk-compare" class="compare-grid hidden"></div>
+      </section>
+
+      <!-- ─── TAB 2: BOUNDARY & HEATMAP INSPECTOR ──────────────── -->
+      <section id="panel-heatmap" class="tab-panel">
+        <div class="glass-card">
+          <div class="card-header">
+            <div>
+              <h3>Boundary & Heatmap Inspector</h3>
+              <p class="subtitle">Visual chunk quality heatmap — click cells to inspect boundaries</p>
+            </div>
+          </div>
+
+          <div id="heatmap-area">
+            <p class="text-muted text-sm">Upload a file in Chunking Studio first to generate the heatmap.</p>
+          </div>
+
+          <div class="heatmap-legend">
+            <span><div class="dot" style="background:var(--emerald)"></div> High quality</span>
+            <span><div class="dot" style="background:var(--amber)"></div> Medium</span>
+            <span><div class="dot" style="background:var(--rose)"></div> Split / Low</span>
+          </div>
+        </div>
+
+        <!-- Selected boundary detail -->
+        <div id="boundary-detail" class="glass-card mt-4 hidden">
+          <div class="card-header">
+            <h3>Boundary Detail</h3>
+          </div>
+          <div id="boundary-content"></div>
+        </div>
+      </section>
+
+      <!-- ─── TAB 3: DIAGNOSTICS & HEALING ──────────────────────── -->
+      <section id="panel-diagnostics" class="tab-panel">
+        <div class="run-controls">
+          <button class="btn btn-primary" id="btn-start-loop">
+            Start Self-Healing Loop
+          </button>
+          <span id="loop-status" class="text-sm text-muted"></span>
+          <div class="spinner hidden" id="loop-spinner"></div>
+        </div>
+
+        <div class="diag-grid">
+          <!-- Dev hit rate -->
+          <div class="glass-card progress-card">
+            <div class="card-header">
+              <h3>Dev Hit Rate</h3>
+            </div>
+            <div class="rate-display">
+              <span class="rate-value" id="dev-rate">—</span>
+              <span class="rate-unit">%</span>
+              <span class="rate-change hidden" id="dev-rate-change"></span>
+            </div>
+            <div class="progress-bar" id="dev-progress" style="width:0%"></div>
+          </div>
+
+          <!-- Holdout hit rate -->
+          <div class="glass-card progress-card">
+            <div class="card-header">
+              <h3>Held-Out Hit Rate</h3>
+            </div>
+            <div class="rate-display">
+              <span class="rate-value" id="holdout-rate">—</span>
+              <span class="rate-unit">%</span>
+              <span class="rate-change hidden" id="holdout-rate-change"></span>
+            </div>
+            <div class="progress-bar" id="holdout-progress" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Failure breakdown -->
+        <div class="glass-card mt-4">
+          <div class="card-header">
+            <h3>Diagnosed Failures</h3>
+          </div>
+          <div id="failure-breakdown">
+            <p class="text-muted text-sm">Run the self-healing loop to see failure analysis.</p>
+          </div>
+        </div>
+
+        <!-- Fix log -->
+        <div class="glass-card mt-4">
+          <div class="card-header">
+            <h3>Applied Fixes</h3>
+          </div>
+          <ul class="fix-log" id="fix-log">
+            <li class="text-muted text-sm">No fixes applied yet.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ─── TAB 4: ASK KNOWLEDGE BASE ─────────────────────────── -->
+      <section id="panel-ask" class="tab-panel">
+        <div class="glass-card" style="height: calc(100vh - 160px); display:flex; flex-direction:column;">
+          <div class="card-header">
+            <div>
+              <h3>Ask Knowledge Base</h3>
+              <p class="subtitle">Interactive Q&A with citations and agent trace</p>
+            </div>
+            <div class="select-wrapper" style="margin-left:auto;">
+              <select id="search-mode">
+                <option value="dense">Dense Search</option>
+                <option value="bm25">BM25 Sparse</option>
+                <option value="hybrid">Hybrid (RRF)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-msg assistant">
+              <div class="chat-avatar">AI</div>
+              <div class="chat-bubble">
+                Welcome to SmartChunk. Upload a document in the Chunking Studio tab first, then ask questions about its contents.
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-input-area">
+            <input type="text"
+                   id="chat-input"
+                   placeholder="Ask a question about your knowledge base…"
+                   autocomplete="off" />
+            <button class="btn btn-primary" id="btn-ask">
+              Ask
+            </button>
+          </div>
+
+          <!-- Trace panel -->
+          <details class="mt-4" style="flex-shrink:0;">
+            <summary class="text-sm text-muted" style="cursor:pointer;user-select:none;">
+              Agent Execution Trace
+            </summary>
+            <table class="trace-table" id="trace-table">
+              <thead>
+                <tr>
+                  <th>Agent</th>
+                  <th>Action</th>
+                  <th>Detail</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody id="trace-tbody"></tbody>
+            </table>
+          </details>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Loading overlay -->
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-card">
+      <div id="loading-text" style="font-weight:600;font-size:1.05rem;">Processing…</div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
