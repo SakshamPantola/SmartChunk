@@ -172,3 +172,5 @@ Open **`http://127.0.0.1:8000`** in your browser.
 2. **Upload Samples**: Upload `samples/sample_architecture.md` via the **Chunking Studio** tab to inspect Naive vs Structure-Aware chunking side-by-side.
 3. **Execute Self-Healing**: Navigate to the **Diagnostics & Healing** tab to observe automated detection of mutilated boundaries and their repair traces.
 4. **Test RAG Q&A**: In the **Ask Knowledge Base** tab, query terms like `"How does the self-healing loop detect broken tables?"` to see reciprocal rank fusion retrieval and grounded generation with citations.
+ 
+ 
